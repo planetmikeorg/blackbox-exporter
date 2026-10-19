@@ -1,0 +1,132 @@
+replicaCount: 1
+
+image:
+  repository: prom/blackbox-exporter
+  tag: "v0.25.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 9115
+
+serviceAccount:
+  create: true
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+  fsGroup: 2000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+  # If your cluster enforces a specific SELinux label, uncomment and tune these values:
+  # seLinuxOptions:
+  #   level: "s0:c123,c456"
+  #   type: "container_t"
+
+serviceMonitor:
+  enabled: true
+  interval: 1m
+  scrapeTimeout: 30s
+
+prometheus:
+  namespace: monitoring
+  release: kube-prometheus-stack-1
+
+probe:
+  interval: 1m
+  scrapeTimeout: 30s
+  module: http_2xx_ssl_expiry
+
+blackbox:
+  config:
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          preferred_ip_protocol: ip4
+          valid_http_versions:
+            - HTTP/1.1
+            - HTTP/2
+          valid_status_codes:
+            - 200
+            - 201
+            - 202
+            - 204
+            - 301
+            - 302
+            - 307
+            - 308
+          follow_redirects: true
+          fail_if_ssl: false
+          fail_if_not_ssl: false
+      http_2xx_ssl_expiry:
+        prober: http
+        timeout: 5s
+        http:
+          preferred_ip_protocol: ip4
+          valid_http_versions:
+            - HTTP/1.1
+            - HTTP/2
+          valid_status_codes:
+            - 200
+            - 201
+            - 202
+            - 204
+            - 301
+            - 302
+            - 307
+            - 308
+          follow_redirects: true
+          fail_if_ssl: false
+          fail_if_not_ssl: false
+          tls_config:
+            insecure_skip_verify: false
+      tcp_connect:
+        prober: tcp
+        timeout: 5s
+        tcp:
+          preferred_ip_protocol: ip4
+      tcp_tn3270_1022:
+        prober: tcp
+        timeout: 5s
+        tcp:
+          preferred_ip_protocol: ip4
+      tcp_postgres_5432:
+        prober: tcp
+        timeout: 5s
+        tcp:
+          preferred_ip_protocol: ip4
+          query_response:
+            - expect: "^PostgreSQL"
+              send: ""
+
+# These are the URLs that will be monitored through Prometheus Operator Probe resources.
+# For HTTPS targets, the exporter will automatically publish probe_ssl_earliest_cert_expiry.
+# For TCP targets, you can point to host:port values and use tcp modules for TN3270 or PostgreSQL checks.
+targets:
+  - name: example
+    url: https://example.com
+    module: http_2xx_ssl_expiry
+  - name: github
+    url: https://github.com
+    module: http_2xx_ssl_expiry
+  - name: tn3270-1022
+    url: 10.0.0.10:1022
+    module: tcp_tn3270_1022
+  - name: postgres-5432
+    url: 10.0.0.10:5432
+    module: tcp_postgres_5432

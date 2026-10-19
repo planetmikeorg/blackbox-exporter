@@ -1,0 +1,20 @@
+{{- range .Values.targets }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: {{ $.Release.Name }}-{{ .name | lower | replace " " "-" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: blackbox-exporter
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+spec:
+  jobName: {{ $.Release.Name }}-{{ .name | lower | replace " " "-" }}
+  module: {{ .module | default $.Values.probe.module }}
+  prober:
+    url: {{ $.Release.Name }}.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.service.port }}
+  targets:
+    staticConfig:
+      targets:
+        - {{ .url }}
+{{- end }}
